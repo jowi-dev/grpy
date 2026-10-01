@@ -1,0 +1,8 @@
+[package]
+name = "grpy"
+version = "0.1.0"
+edition = "2024"
+description = "Discover local concerts from a TUI and add them to Google Calendar"
+license = "MIT"
+
+[dependencies]
