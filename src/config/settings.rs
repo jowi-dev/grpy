@@ -104,12 +104,14 @@ impl Config {
             message: err.message().to_owned(),
         })?;
 
-        let _ = env;
-        let ticketmaster = raw.providers.ticketmaster_key;
+        let non_empty = |value: &String| !value.is_empty();
+        let ticketmaster = env(TICKETMASTER_KEY_ENV)
+            .filter(non_empty)
+            .or(raw.providers.ticketmaster_key.filter(non_empty));
 
         Ok(Self {
             providers: ProviderKeys {
-                ticketmaster: ticketmaster.filter(|key| !key.is_empty()).map(Secret::new),
+                ticketmaster: ticketmaster.map(Secret::new),
             },
             home: Home {
                 place: home_place(raw.home.address, raw.home.lat, raw.home.lon)?,
@@ -302,5 +304,47 @@ mod tests {
         let shown = format!("{err} {err:?}");
         assert!(!shown.contains("tm-abc123"), "leaked: {shown}");
         assert!(shown.contains("line 2"), "{shown}");
+    }
+
+    fn env_with_key(name: &str) -> Option<String> {
+        (name == TICKETMASTER_KEY_ENV).then(|| "tm-from-env".to_owned())
+    }
+
+    #[test]
+    fn env_var_overrides_the_file_key() {
+        let config = Config::parse(
+            "[providers]\nticketmaster_key = \"tm-from-file\"\n[home]\naddress = \"33301\"",
+            env_with_key,
+        )
+        .unwrap();
+
+        assert_eq!(
+            config.providers.ticketmaster,
+            Some(Secret::new("tm-from-env"))
+        );
+    }
+
+    #[test]
+    fn env_var_supplies_a_key_the_file_lacks() {
+        let config = Config::parse(MINIMAL, env_with_key).unwrap();
+
+        assert_eq!(
+            config.providers.ticketmaster,
+            Some(Secret::new("tm-from-env"))
+        );
+    }
+
+    #[test]
+    fn empty_env_var_does_not_override() {
+        let config = Config::parse(
+            "[providers]\nticketmaster_key = \"tm-from-file\"\n[home]\naddress = \"33301\"",
+            |_| Some(String::new()),
+        )
+        .unwrap();
+
+        assert_eq!(
+            config.providers.ticketmaster,
+            Some(Secret::new("tm-from-file"))
+        );
     }
 }
