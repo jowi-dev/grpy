@@ -59,10 +59,16 @@ pub struct ResolvedLocation {
 }
 
 impl fmt::Display for ResolvedLocation {
-    /// Renders as `"Pompano Beach, FL (26.2379, -80.1248) from command line"`.
+    /// Renders as `"Pompano Beach, FL (26.2379, -80.1248) from command line"`,
+    /// or just `"26.2379, -80.1248 from command line"` when the label is
+    /// already the coordinates.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Location { lat, lon, label } = &self.location;
-        write!(f, "{label} ({lat:.4}, {lon:.4}) from {}", self.source)
+        if *label == coordinate_label(*lat, *lon) {
+            write!(f, "{label} from {}", self.source)
+        } else {
+            write!(f, "{label} ({lat:.4}, {lon:.4}) from {}", self.source)
+        }
     }
 }
 
@@ -182,8 +188,13 @@ fn coordinates(lat: f64, lon: f64) -> Result<Location, ResolveError> {
     Ok(Location {
         lat,
         lon,
-        label: format!("{lat}, {lon}"),
+        label: coordinate_label(lat, lon),
     })
+}
+
+/// The label given to a location that has only coordinates.
+fn coordinate_label(lat: f64, lon: f64) -> String {
+    format!("{lat}, {lon}")
 }
 
 #[cfg(test)]
@@ -373,5 +384,15 @@ mod tests {
             resolved.to_string(),
             "Pompano Beach, Florida (26.2379, -80.1248) from config home"
         );
+    }
+
+    #[test]
+    fn resolved_coordinates_are_not_shown_twice() {
+        let geocoder = FakeGeocoder::default();
+        let resolved = LocationResolver::new(&geocoder)
+            .resolve(Some(&coords(26.1194, -80.1462)), None)
+            .unwrap();
+
+        assert_eq!(resolved.to_string(), "26.1194, -80.1462 from command line");
     }
 }
