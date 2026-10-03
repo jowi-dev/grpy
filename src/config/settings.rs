@@ -85,6 +85,18 @@ impl fmt::Display for ConfigError {
 
 impl std::error::Error for ConfigError {}
 
+impl fmt::Display for Warning {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingTicketmasterKey => write!(
+                f,
+                "no Ticketmaster API key; venues ticketed through Ticketmaster won't be covered \
+                 (set `providers.ticketmaster_key` or {TICKETMASTER_KEY_ENV})"
+            ),
+        }
+    }
+}
+
 impl Config {
     /// Parses `config.toml` text, then applies environment overrides.
     ///
@@ -122,6 +134,15 @@ impl Config {
                 .calendar_id
                 .unwrap_or_else(|| DEFAULT_CALENDAR_ID.to_owned()),
         })
+    }
+
+    /// Non-fatal problems with this config, for the user to see at startup.
+    pub fn warnings(&self) -> Vec<Warning> {
+        let mut warnings = Vec::new();
+        if self.providers.ticketmaster.is_none() {
+            warnings.push(Warning::MissingTicketmasterKey);
+        }
+        warnings
     }
 }
 
@@ -346,5 +367,22 @@ mod tests {
             config.providers.ticketmaster,
             Some(Secret::new("tm-from-file"))
         );
+    }
+
+    #[test]
+    fn missing_ticketmaster_key_warns_instead_of_failing() {
+        let config = Config::parse(MINIMAL, no_env).unwrap();
+
+        assert_eq!(config.warnings(), [Warning::MissingTicketmasterKey]);
+        let shown = Warning::MissingTicketmasterKey.to_string();
+        assert!(shown.contains("Ticketmaster"), "{shown}");
+        assert!(shown.contains(TICKETMASTER_KEY_ENV), "{shown}");
+    }
+
+    #[test]
+    fn configured_ticketmaster_key_does_not_warn() {
+        let config = Config::parse(MINIMAL, env_with_key).unwrap();
+
+        assert!(config.warnings().is_empty());
     }
 }
