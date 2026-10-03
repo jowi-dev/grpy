@@ -1,0 +1,18 @@
+status_on_pr = "In Review"
+schema_version = 2
+
+[backend]
+provider = "github"
+
+[backend.github]
+repo = "jowi-dev/grpy"
+
+[work.lanes.grpy]
+repo = "."
+base_branch = "main"
+prompt_file = ".tskmstr/prompts/grpy-lane.md"
+model = "opus"
+
+[work.create]
+dir = "."
+prompt_file = ".tskmstr/prompts/create.md"
