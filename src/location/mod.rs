@@ -9,9 +9,13 @@
 //! Place names are turned into coordinates by a [`Geocoder`], so tests can
 //! swap in a fake one and never touch the network.
 
+mod nominatim;
+
 use std::fmt;
 
 use crate::domain::Location;
+
+pub use nominatim::Nominatim;
 
 /// A location as the user wrote it, before geocoding.
 #[derive(Debug, Clone, PartialEq)]
