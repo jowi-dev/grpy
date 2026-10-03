@@ -5,5 +5,7 @@
 //! provider-specific JSON or HTML.
 
 mod id;
+mod model;
 
 pub use id::{EventId, ParseIdError, ProviderId, VenueId};
+pub use model::{Event, Location, Venue};
