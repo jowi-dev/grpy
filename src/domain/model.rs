@@ -16,6 +16,21 @@ pub struct Location {
     pub label: String,
 }
 
+impl Location {
+    /// Great-circle distance to `other` in kilometres, using the haversine
+    /// formula on a spherical Earth (radius 6371 km). Accurate to well
+    /// under 1% at the distances grpy cares about.
+    pub fn distance_km(&self, other: &Location) -> f64 {
+        const EARTH_RADIUS_KM: f64 = 6371.0;
+
+        let (lat1, lat2) = (self.lat.to_radians(), other.lat.to_radians());
+        let half_dlat = (lat2 - lat1) / 2.0;
+        let half_dlon = (other.lon - self.lon).to_radians() / 2.0;
+        let a = half_dlat.sin().powi(2) + lat1.cos() * lat2.cos() * half_dlon.sin().powi(2);
+        2.0 * EARTH_RADIUS_KM * a.sqrt().asin()
+    }
+}
+
 /// A place that hosts shows.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Venue {
@@ -102,6 +117,30 @@ mod tests {
                 .parse()
                 .unwrap(),
         }
+    }
+
+    fn at(lat: f64, lon: f64) -> Location {
+        Location {
+            lat,
+            lon,
+            label: String::new(),
+        }
+    }
+
+    #[test]
+    fn distance_to_self_is_zero() {
+        let here = revolution_live().location;
+        assert_eq!(here.distance_km(&here), 0.0);
+    }
+
+    #[test]
+    fn distance_matches_known_city_pair() {
+        // Fort Lauderdale to Miami is roughly 40 km as the crow flies.
+        let fort_lauderdale = at(26.1224, -80.1373);
+        let miami = at(25.7617, -80.1918);
+        let km = fort_lauderdale.distance_km(&miami);
+        assert!((km - 40.4).abs() < 0.5, "{km}");
+        assert_eq!(km, miami.distance_km(&fort_lauderdale));
     }
 
     #[test]
