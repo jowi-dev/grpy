@@ -10,3 +10,6 @@ chrono = { version = "0.4.45", default-features = false, features = ["std", "clo
 serde = { version = "1.0.229", features = ["derive"] }
 toml = "1.1.6"
 url = "2.5.8"
+
+[dev-dependencies]
+tempfile = "3.27.0"
