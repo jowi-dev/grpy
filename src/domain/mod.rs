@@ -6,6 +6,8 @@
 
 mod id;
 mod model;
+mod range;
 
 pub use id::{EventId, ParseIdError, ProviderId, VenueId};
 pub use model::{Event, Location, Venue};
+pub use range::DateRange;
