@@ -1,0 +1,25 @@
+# grpy configuration.
+#
+# grpy wrote this file on first run. Set your home location below, then run
+# grpy again. Lines starting with `#` are comments.
+
+[home]
+# Where to search from: an address, city or ZIP code ...
+# address = "Fort Lauderdale, FL"
+# ... or explicit coordinates in decimal degrees, which win over `address`.
+# lat = 26.1224
+# lon = -80.1373
+
+# How far from home to look for venues, in miles. Default: 25.
+# radius_miles = 25
+
+[providers]
+# Ticketmaster Discovery API key (https://developer.ticketmaster.com/).
+# Optional: without it, venues ticketed through Ticketmaster aren't covered.
+# The GRPY_TICKETMASTER_KEY environment variable overrides this value.
+# This file holds secrets; grpy creates it readable only by you.
+# ticketmaster_key = ""
+
+[calendar]
+# Google Calendar to add events to. Default: "primary".
+# calendar_id = "primary"
