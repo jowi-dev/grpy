@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use grpy::cli::Cli;
 use grpy::config::{self, Paths};
-use grpy::location::{LocationResolver, Nominatim};
+use grpy::location::{LocationQuery, LocationResolver, Nominatim};
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -25,10 +25,9 @@ async fn main() -> ExitCode {
         eprintln!("grpy: warning: {warning}");
     }
 
-    // The config file's home location plugs in here once it exists (#3).
-    let home = None;
+    let home = LocationQuery::from(&config.home.place);
 
-    match LocationResolver::new(Nominatim::new()).resolve(cli.location().as_ref(), home) {
+    match LocationResolver::new(Nominatim::new()).resolve(cli.location().as_ref(), Some(&home)) {
         Ok(resolved) => {
             println!("Using location: {resolved}");
             ExitCode::SUCCESS

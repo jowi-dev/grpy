@@ -12,7 +12,8 @@ grpy --near "Pompano Beach, FL"      # city, address or zip code
 grpy --lat 26.2379 --lon -80.1248    # exact coordinates
 ```
 
-grpy prints the location it is using and where it came from. Place names
+Without these flags grpy uses the home location from the config file. grpy
+prints the location it is using and where it came from. Place names
 are looked up with [OpenStreetMap Nominatim](https://nominatim.org/).
 
 ## Configuration

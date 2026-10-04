@@ -13,6 +13,7 @@ mod nominatim;
 
 use std::fmt;
 
+use crate::config::HomePlace;
 use crate::domain::Location;
 
 pub use nominatim::Nominatim;
@@ -29,6 +30,16 @@ pub enum LocationQuery {
     },
     /// A free-form place such as `"Pompano Beach, FL"` or `"33060"`.
     Place(String),
+}
+
+impl From<&HomePlace> for LocationQuery {
+    /// Turns the config file's home into a query for [`LocationResolver`].
+    fn from(home: &HomePlace) -> Self {
+        match home {
+            HomePlace::Address(address) => LocationQuery::Place(address.clone()),
+            &HomePlace::Coordinates { lat, lon } => LocationQuery::Coordinates { lat, lon },
+        }
+    }
 }
 
 /// Where a resolved location came from, so the UI can tell the user.
@@ -394,5 +405,22 @@ mod tests {
             .unwrap();
 
         assert_eq!(resolved.to_string(), "26.1194, -80.1462 from command line");
+    }
+
+    #[test]
+    fn config_home_address_becomes_a_place_query() {
+        let home = HomePlace::Address("Pompano Beach, FL".into());
+
+        assert_eq!(LocationQuery::from(&home), place("Pompano Beach, FL"));
+    }
+
+    #[test]
+    fn config_home_coordinates_become_a_coordinate_query() {
+        let home = HomePlace::Coordinates {
+            lat: 26.2379,
+            lon: -80.1248,
+        };
+
+        assert_eq!(LocationQuery::from(&home), coords(26.2379, -80.1248));
     }
 }
