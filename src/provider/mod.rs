@@ -7,6 +7,7 @@
 //! TUI development.
 
 mod fake;
+pub mod ticketmaster;
 
 use std::fmt;
 use std::future::Future;
@@ -14,6 +15,7 @@ use std::future::Future;
 use crate::domain::{DateRange, Event, Location, Venue, VenueId};
 
 pub use fake::FakeProvider;
+pub use ticketmaster::Ticketmaster;
 
 /// Error returned by an [`EventProvider`].
 #[derive(Debug)]

@@ -1,0 +1,6 @@
+{
+  "_links": {
+    "self": { "href": "/discovery/v2/venues?latlong=0,0&radius=1&unit=km&size=200&page=0" }
+  },
+  "page": { "size": 200, "totalElements": 0, "totalPages": 0, "number": 0 }
+}

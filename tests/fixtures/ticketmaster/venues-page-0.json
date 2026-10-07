@@ -1,0 +1,48 @@
+{
+  "_embedded": {
+    "venues": [
+      {
+        "name": "Revolution Live",
+        "type": "venue",
+        "id": "KovZpZRevTest",
+        "url": "https://www.ticketmaster.com/revolution-live-tickets-fort-lauderdale/venue/0000",
+        "locale": "en-us",
+        "postalCode": "33312",
+        "timezone": "America/New_York",
+        "city": { "name": "Fort Lauderdale" },
+        "state": { "name": "Florida", "stateCode": "FL" },
+        "country": { "name": "United States Of America", "countryCode": "US" },
+        "address": { "line1": "100 SW 3rd Ave" },
+        "location": { "longitude": "-80.1462", "latitude": "26.1194" },
+        "distance": 0.6,
+        "units": "MILES"
+      },
+      {
+        "name": "Culture Room",
+        "type": "venue",
+        "id": "KovZpZCulTest",
+        "locale": "en-us",
+        "postalCode": "33306",
+        "city": { "name": "Fort Lauderdale" },
+        "state": { "name": "Florida", "stateCode": "FL" },
+        "address": { "line1": "3045 N Federal Hwy" },
+        "location": { "longitude": "-80.1178", "latitude": "26.1653" },
+        "distance": 3.2,
+        "units": "MILES"
+      },
+      {
+        "name": "Venue To Be Announced",
+        "type": "venue",
+        "id": "KovZpZTbaTest",
+        "locale": "en-us",
+        "city": { "name": "Fort Lauderdale" },
+        "state": { "name": "Florida", "stateCode": "FL" }
+      }
+    ]
+  },
+  "_links": {
+    "self": { "href": "/discovery/v2/venues?latlong=26.1224,-80.1373&radius=80&unit=km&size=3&page=0" },
+    "next": { "href": "/discovery/v2/venues?latlong=26.1224,-80.1373&radius=80&unit=km&size=3&page=1" }
+  },
+  "page": { "size": 3, "totalElements": 5, "totalPages": 2, "number": 0 }
+}
