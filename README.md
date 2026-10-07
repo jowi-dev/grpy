@@ -16,6 +16,19 @@ Without these flags grpy uses the home location from the config file. grpy
 prints the location it is using and where it came from. Place names
 are looked up with [OpenStreetMap Nominatim](https://nominatim.org/).
 
+grpy then opens a terminal UI listing venues within the configured radius.
+Real venue sources aren't wired up yet, so for now the list holds made-up
+demo venues near your location.
+
+| Key | Action |
+|---|---|
+| `Tab` / `Shift-Tab` | Next / previous screen |
+| `1`, `2` | Go to Venues, Concerts |
+| `r` | Reload venues |
+| `?` | Toggle key help |
+| `Esc` | Close help |
+| `q`, `Ctrl-C` | Quit |
+
 ## Configuration
 
 grpy reads `$XDG_CONFIG_HOME/grpy/config.toml` (default
