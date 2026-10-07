@@ -1,6 +1,7 @@
 //! The parsed `config.toml`.
 
 use std::fmt;
+use std::time::Duration;
 
 use serde::Deserialize;
 
@@ -21,6 +22,9 @@ pub const DEFAULT_RADIUS_MILES: f64 = 25.0;
 /// Calendar used when `calendar.calendar_id` is not set.
 pub const DEFAULT_CALENDAR_ID: &str = "primary";
 
+/// How long fetched events stay fresh when `cache.ttl_hours` is not set.
+pub const DEFAULT_CACHE_TTL: Duration = Duration::from_secs(12 * 3600);
+
 /// Everything grpy reads from `config.toml` and the environment.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
@@ -33,6 +37,8 @@ pub struct Config {
     /// The OAuth client grpy signs in to Google with, if configured.
     /// `grpy auth google` needs it.
     pub google: Option<GoogleClient>,
+    /// How long fetched events are reused before a venue is fetched again.
+    pub cache_ttl: Duration,
 }
 
 /// An OAuth client of type "Desktop app" from the Google Cloud console.
@@ -174,6 +180,9 @@ impl Config {
                 .calendar_id
                 .unwrap_or_else(|| DEFAULT_CALENDAR_ID.to_owned()),
             google,
+            cache_ttl: raw.cache.ttl_hours.map_or(DEFAULT_CACHE_TTL, |hours| {
+                Duration::from_secs(hours.saturating_mul(3600))
+            }),
         })
     }
 
@@ -244,6 +253,7 @@ struct RawConfig {
     home: RawHome,
     calendar: RawCalendar,
     google: RawGoogle,
+    cache: RawCache,
 }
 
 #[derive(Deserialize, Default)]
@@ -272,6 +282,12 @@ struct RawCalendar {
 struct RawGoogle {
     client_id: Option<String>,
     client_secret: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+struct RawCache {
+    ttl_hours: Option<u64>,
 }
 
 #[cfg(test)]
@@ -305,6 +321,9 @@ mod tests {
             [google]
             client_id = "123-abc.apps.googleusercontent.com"
             client_secret = "GOCSPX-test"
+
+            [cache]
+            ttl_hours = 6
             "#,
             no_env,
         )
@@ -328,6 +347,7 @@ mod tests {
                     client_id: "123-abc.apps.googleusercontent.com".into(),
                     client_secret: Secret::new("GOCSPX-test"),
                 }),
+                cache_ttl: Duration::from_secs(6 * 3600),
             }
         );
     }
@@ -343,6 +363,18 @@ mod tests {
         );
         assert_eq!(config.home.radius_miles, DEFAULT_RADIUS_MILES);
         assert_eq!(config.calendar_id, DEFAULT_CALENDAR_ID);
+        assert_eq!(config.cache_ttl, DEFAULT_CACHE_TTL);
+    }
+
+    #[test]
+    fn huge_cache_ttl_saturates_instead_of_overflowing() {
+        let config = Config::parse(
+            &format!("{MINIMAL}\n[cache]\nttl_hours = {}", u64::MAX),
+            no_env,
+        )
+        .unwrap();
+
+        assert_eq!(config.cache_ttl, Duration::from_secs(u64::MAX));
     }
 
     #[test]

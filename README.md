@@ -45,6 +45,7 @@ your home location there and run it again.
 | `providers.ticketmaster_key` | no | | Without it, Ticketmaster-ticketed venues aren't covered (grpy warns) |
 | `calendar.calendar_id` | no | `primary` | Google Calendar to add events to |
 | `google.client_id`, `google.client_secret` | both or neither | | OAuth client for `grpy auth google` (see below) |
+| `cache.ttl_hours` | no | `12` | How long fetched shows are reused before a venue is checked again |
 
 `GRPY_TICKETMASTER_KEY` overrides `providers.ticketmaster_key`, and
 `GRPY_GOOGLE_CLIENT_ID` / `GRPY_GOOGLE_CLIENT_SECRET` override the Google
