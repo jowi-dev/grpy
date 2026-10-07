@@ -146,10 +146,10 @@ fn venue_from_row(row: &Row) -> rusqlite::Result<Venue> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
 
-    pub(super) fn venue(id: &str, name: &str) -> Venue {
+    pub(in crate::store) fn venue(id: &str, name: &str) -> Venue {
         Venue {
             id: id.parse().unwrap(),
             name: name.into(),

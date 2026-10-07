@@ -5,6 +5,7 @@
 //! (see [`Paths::store_file`](crate::config::Paths::store_file)). The
 //! schema is versioned and migrated forward on [`Store::open`].
 
+mod events;
 mod migrations;
 mod venues;
 
