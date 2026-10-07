@@ -114,7 +114,9 @@ impl FileStore {
                 fs::set_permissions(&self.path, fs::Permissions::from_mode(0o600))?;
             }
         }
-        options.open(&self.path)?.write_all(token.expose().as_bytes())
+        options
+            .open(&self.path)?
+            .write_all(token.expose().as_bytes())
     }
 
     fn error(&self, err: io::Error) -> AuthError {
@@ -190,7 +192,9 @@ mod tests {
         fs::write(&path, "old").unwrap();
         fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
 
-        FileStore::new(&path).save(&Secret::new("1//token")).unwrap();
+        FileStore::new(&path)
+            .save(&Secret::new("1//token"))
+            .unwrap();
 
         let mode = fs::metadata(&path).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600);
@@ -272,7 +276,10 @@ mod tests {
 
     #[test]
     fn fallback_store_prefers_the_primary_token() {
-        let (primary, fallback) = (FakeStore::holding("1//keyring"), FakeStore::holding("1//file"));
+        let (primary, fallback) = (
+            FakeStore::holding("1//keyring"),
+            FakeStore::holding("1//file"),
+        );
 
         assert_eq!(
             FallbackStore::new(&primary, &fallback).load(),

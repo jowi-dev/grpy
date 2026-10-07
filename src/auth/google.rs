@@ -144,7 +144,10 @@ pub fn exchange_code(
         ],
     )?;
     let granted = reply.scope.as_deref().unwrap_or_default();
-    if !granted.split(' ').any(|scope| scope == CALENDAR_EVENTS_SCOPE) {
+    if !granted
+        .split(' ')
+        .any(|scope| scope == CALENDAR_EVENTS_SCOPE)
+    {
         return Err(AuthError::MissingScope);
     }
     let refresh = reply
@@ -261,7 +264,11 @@ mod tests {
         }
 
         fn last_form(&self) -> HashMap<String, String> {
-            self.forms.borrow().last().cloned().expect("no request sent")
+            self.forms
+                .borrow()
+                .last()
+                .cloned()
+                .expect("no request sent")
         }
     }
 
@@ -298,7 +305,10 @@ mod tests {
             ("redirect_uri", REDIRECT),
             ("response_type", "code"),
             ("scope", CALENDAR_EVENTS_SCOPE),
-            ("code_challenge", "06aTZDjdj5HRPy5S-SZuIiTIBQqvQXWhUi0w-idGegA"),
+            (
+                "code_challenge",
+                "06aTZDjdj5HRPy5S-SZuIiTIBQqvQXWhUi0w-idGegA",
+            ),
             ("code_challenge_method", "S256"),
             ("state", "state-123"),
             ("access_type", "offline"),
@@ -416,7 +426,10 @@ mod tests {
         let err = refresh(&endpoint, &client(), &Secret::new("1//revoked")).unwrap_err();
 
         assert_eq!(err, AuthError::Revoked);
-        assert!(err.to_string().contains("re-run `grpy auth google`"), "{err}");
+        assert!(
+            err.to_string().contains("re-run `grpy auth google`"),
+            "{err}"
+        );
     }
 
     #[test]

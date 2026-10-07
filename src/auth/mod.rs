@@ -7,14 +7,16 @@
 //! [`CALENDAR_EVENTS_SCOPE`] is requested.
 
 mod error;
-mod loopback;
 pub mod google;
+mod loopback;
 mod pkce;
+mod session;
 mod store;
 
 pub use error::AuthError;
 pub use loopback::Loopback;
 pub use pkce::Pkce;
+pub use session::{EXPIRY_MARGIN, GoogleAuth};
 pub use store::{
     FallbackStore, FileStore, KEYRING_SERVICE, KEYRING_USER, KeyringStore, TOKEN_FILE_NAME,
     TokenStore,

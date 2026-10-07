@@ -57,7 +57,10 @@ mod tests {
     fn challenge_is_base64url_sha256_of_the_verifier() {
         let pkce = Pkce::from_verifier("dBjftJeZ4CVP-mJ92K9mfGx1gq74d6XYvUKOh2HlAQs");
 
-        assert_eq!(pkce.challenge, "06aTZDjdj5HRPy5S-SZuIiTIBQqvQXWhUi0w-idGegA");
+        assert_eq!(
+            pkce.challenge,
+            "06aTZDjdj5HRPy5S-SZuIiTIBQqvQXWhUi0w-idGegA"
+        );
         assert_eq!(
             pkce.verifier.expose(),
             "dBjftJeZ4CVP-mJ92K9mfGx1gq74d6XYvUKOh2HlAQs"
