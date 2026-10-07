@@ -6,8 +6,11 @@
 //! refresh token, protected by PKCE. Only the
 //! [`CALENDAR_EVENTS_SCOPE`] is requested.
 
+mod error;
+pub mod google;
 mod pkce;
 
+pub use error::AuthError;
 pub use pkce::Pkce;
 
 /// The only scope grpy asks for: read and write events, without access to
