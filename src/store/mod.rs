@@ -6,12 +6,15 @@
 //! schema is versioned and migrated forward on [`Store::open`].
 
 mod migrations;
+mod venues;
 
 use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
-use rusqlite::Connection;
+use rusqlite::types::Type;
+use rusqlite::{Connection, Row};
 
 /// Why a [`Store`] operation failed.
 #[derive(Debug)]
@@ -102,6 +105,18 @@ impl Store {
     pub fn schema_version(&self) -> Result<u32> {
         migrations::version(&self.conn)
     }
+}
+
+/// Reads text column `idx` of `row` and parses it with [`FromStr`], for
+/// IDs and URLs stored as their string form.
+fn parsed<T>(row: &Row, idx: usize) -> rusqlite::Result<T>
+where
+    T: FromStr,
+    T::Err: std::error::Error + Send + Sync + 'static,
+{
+    let text: String = row.get(idx)?;
+    text.parse()
+        .map_err(|err| rusqlite::Error::FromSqlConversionFailure(idx, Type::Text, Box::new(err)))
 }
 
 #[cfg(test)]
