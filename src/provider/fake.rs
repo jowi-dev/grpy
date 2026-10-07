@@ -1,5 +1,7 @@
 //! In-memory provider for tests and TUI development.
 
+use std::time::Duration;
+
 use crate::domain::{DateRange, Event, Location, Venue, VenueId};
 
 use super::{Error, EventProvider, Result};
@@ -27,6 +29,7 @@ use super::{Error, EventProvider, Result};
 pub struct FakeProvider {
     venues: Vec<Venue>,
     events: Vec<Event>,
+    latency: Duration,
 }
 
 impl FakeProvider {
@@ -49,10 +52,50 @@ impl FakeProvider {
         self.events.push(event);
         self
     }
+
+    /// A handful of made-up venues within a few kilometres of `center`, so
+    /// the TUI has something to show before real providers exist.
+    pub fn demo(center: &Location) -> Self {
+        const VENUES: [(&str, &str, f64, f64); 4] = [
+            ("velvet-room", "The Velvet Room", 0.004, -0.003),
+            ("basement", "The Basement", -0.008, 0.006),
+            ("riverside-hall", "Riverside Hall", 0.015, 0.012),
+            ("harbor-amphitheater", "Harbor Amphitheater", -0.021, -0.018),
+        ];
+        VENUES
+            .into_iter()
+            .fold(Self::new(), |provider, (slug, name, dlat, dlon)| {
+                provider.with_venue(Venue {
+                    id: format!("fake:{slug}").parse().expect("valid demo venue ID"),
+                    name: name.into(),
+                    address: None,
+                    location: Location {
+                        lat: center.lat + dlat,
+                        lon: center.lon + dlon,
+                        label: center.label.clone(),
+                    },
+                })
+            })
+    }
+
+    /// Makes every call wait `latency` before answering, to mimic a slow
+    /// network source. The calls then need a tokio runtime with its timer
+    /// enabled.
+    pub fn with_latency(mut self, latency: Duration) -> Self {
+        self.latency = latency;
+        self
+    }
+
+    async fn wait(&self) {
+        if !self.latency.is_zero() {
+            tokio::time::sleep(self.latency).await;
+        }
+    }
 }
 
 impl EventProvider for FakeProvider {
     async fn venues_near(&self, loc: &Location, radius_km: u32) -> Result<Vec<Venue>> {
+        self.wait().await;
         let radius_km = f64::from(radius_km);
         let mut nearby: Vec<(f64, &Venue)> = self
             .venues
@@ -65,6 +108,7 @@ impl EventProvider for FakeProvider {
     }
 
     async fn upcoming_events(&self, venue: &VenueId, window: DateRange) -> Result<Vec<Event>> {
+        self.wait().await;
         if !self.venues.iter().any(|v| v.id == *venue) {
             return Err(Error::UnknownVenue(venue.clone()));
         }
@@ -81,6 +125,8 @@ impl EventProvider for FakeProvider {
 
 #[cfg(test)]
 mod tests {
+    use std::time::{Duration, Instant};
+
     use chrono::{DateTime, Utc};
 
     use super::*;
@@ -210,5 +256,30 @@ mod tests {
         let provider = FakeProvider::new().with_venue(venue("fake:club", fort_lauderdale()));
 
         assert_eq!(count_venues(provider).await, 1);
+    }
+
+    #[tokio::test]
+    async fn latency_delays_every_call() {
+        let club = venue("fake:club", fort_lauderdale());
+        let provider = FakeProvider::new()
+            .with_venue(club.clone())
+            .with_latency(Duration::from_millis(30));
+
+        let started = Instant::now();
+        provider.venues_near(&fort_lauderdale(), 10).await.unwrap();
+        provider.upcoming_events(&club.id, october()).await.unwrap();
+
+        assert!(started.elapsed() >= Duration::from_millis(60));
+    }
+
+    #[tokio::test]
+    async fn demo_venues_are_all_near_the_given_location() {
+        let center = at(40.7128, -74.0060);
+        let provider = FakeProvider::demo(&center);
+
+        let venues = provider.venues_near(&center, 10).await.unwrap();
+
+        assert!(venues.len() >= 3, "{venues:?}");
+        assert!(venues.iter().all(|v| v.provider().to_string() == "fake"));
     }
 }
