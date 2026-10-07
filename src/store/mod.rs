@@ -7,6 +7,7 @@
 
 mod events;
 mod migrations;
+mod state;
 mod venues;
 
 use std::fmt;
@@ -17,8 +18,9 @@ use std::str::FromStr;
 use rusqlite::types::Type;
 use rusqlite::{Connection, Row};
 
-use crate::domain::VenueId;
+use crate::domain::{EventId, VenueId};
 
+pub use state::EventState;
 pub use venues::VenueSource;
 
 /// Why a [`Store`] operation failed.
@@ -29,6 +31,12 @@ pub enum StoreError {
     NewerSchema { found: u32, supported: u32 },
     /// The store has never seen this venue.
     UnknownVenue(VenueId),
+    /// The event is already on the calendar as `google_event_id`, so its
+    /// state can't change.
+    AlreadyAdded {
+        event: EventId,
+        google_event_id: String,
+    },
     /// The database's directory could not be created.
     Io { path: PathBuf, source: io::Error },
     /// SQLite failed.
@@ -44,6 +52,13 @@ impl fmt::Display for StoreError {
                  ({supported}); upgrade grpy"
             ),
             Self::UnknownVenue(id) => write!(f, "unknown venue `{id}`"),
+            Self::AlreadyAdded {
+                event,
+                google_event_id,
+            } => write!(
+                f,
+                "`{event}` is already on the calendar (event {google_event_id})"
+            ),
             Self::Io { path, source } => write!(f, "{}: {source}", path.display()),
             Self::Sqlite(err) => err.fmt(f),
         }
@@ -53,7 +68,7 @@ impl fmt::Display for StoreError {
 impl std::error::Error for StoreError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::NewerSchema { .. } | Self::UnknownVenue(_) => None,
+            Self::NewerSchema { .. } | Self::UnknownVenue(_) | Self::AlreadyAdded { .. } => None,
             Self::Io { source, .. } => Some(source),
             Self::Sqlite(err) => Some(err),
         }
