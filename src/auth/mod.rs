@@ -10,10 +10,15 @@ mod error;
 mod loopback;
 pub mod google;
 mod pkce;
+mod store;
 
 pub use error::AuthError;
 pub use loopback::Loopback;
 pub use pkce::Pkce;
+pub use store::{
+    FallbackStore, FileStore, KEYRING_SERVICE, KEYRING_USER, KeyringStore, TOKEN_FILE_NAME,
+    TokenStore,
+};
 
 /// The only scope grpy asks for: read and write events, without access to
 /// calendar settings or sharing.
