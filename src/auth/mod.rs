@@ -7,10 +7,12 @@
 //! [`CALENDAR_EVENTS_SCOPE`] is requested.
 
 mod error;
+mod loopback;
 pub mod google;
 mod pkce;
 
 pub use error::AuthError;
+pub use loopback::Loopback;
 pub use pkce::Pkce;
 
 /// The only scope grpy asks for: read and write events, without access to

@@ -21,8 +21,6 @@ pub enum AuthError {
     /// The browser redirect carried a `state` that doesn't match this
     /// sign-in, so it may not come from the request grpy started.
     StateMismatch,
-    /// The browser redirect couldn't be understood.
-    BadRedirect(String),
     /// Google's OAuth server returned another error, such as
     /// `invalid_client` for a wrong client ID or secret.
     OAuth {
@@ -63,7 +61,6 @@ impl fmt::Display for AuthError {
                 "the Google sign-in response didn't match this request; \
                  re-run `grpy auth google`",
             ),
-            Self::BadRedirect(why) => write!(f, "unexpected Google sign-in redirect: {why}"),
             Self::OAuth {
                 error,
                 description: Some(description),
