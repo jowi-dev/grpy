@@ -44,9 +44,58 @@ your home location there and run it again.
 | `home.radius_miles` | no | `25` | Search radius |
 | `providers.ticketmaster_key` | no | | Without it, Ticketmaster-ticketed venues aren't covered (grpy warns) |
 | `calendar.calendar_id` | no | `primary` | Google Calendar to add events to |
+| `google.client_id`, `google.client_secret` | both or neither | | OAuth client for `grpy auth google` (see below) |
 
-`GRPY_TICKETMASTER_KEY` overrides `providers.ticketmaster_key`. grpy never
-prints secrets, including in config errors.
+`GRPY_TICKETMASTER_KEY` overrides `providers.ticketmaster_key`, and
+`GRPY_GOOGLE_CLIENT_ID` / `GRPY_GOOGLE_CLIENT_SECRET` override the Google
+client. grpy never prints secrets, including in config errors.
+
+## Google Calendar sign-in
+
+grpy adds events through your own Google Cloud OAuth client and asks only
+for the `calendar.events` scope: it can view and edit events, but not
+calendar settings or sharing. Create the client once:
+
+1. In the [Google Cloud console](https://console.cloud.google.com/), create
+   a project (or pick an existing one).
+2. Under **APIs & Services → Library**, enable the **Google Calendar API**.
+3. Under **Google Auth Platform**, set up the consent screen: any app name,
+   audience **External**, and your email as support and developer contact.
+   On **Audience**, add your Google account as a test user. On **Data
+   access**, add the scope
+   `https://www.googleapis.com/auth/calendar.events`.
+4. Under **Clients**, create a client with application type **Desktop
+   app**. Copy its client ID and client secret into `config.toml`:
+
+   ```toml
+   [google]
+   client_id = "1234-abc.apps.googleusercontent.com"
+   client_secret = "GOCSPX-..."
+   ```
+
+5. Run the sign-in:
+
+   ```sh
+   grpy auth google
+   ```
+
+   grpy opens Google's consent page in your browser (or prints the URL),
+   receives the answer on a one-time `http://127.0.0.1:<port>` listener,
+   and prints where it saved the refresh token. The flow uses PKCE, so the
+   authorization code is useless to anyone else.
+
+While the consent screen's publishing status is **Testing**, Google expires
+refresh tokens after 7 days. To stay signed in, set it to **In production**
+on the **Audience** page. A personal, unverified app works fine; Google just
+warns that the app isn't verified when you sign in.
+
+The refresh token is stored in the OS keyring (service `grpy`, account
+`google-refresh-token`). Without a keyring, as on a headless machine, it
+goes to `$XDG_DATA_HOME/grpy/google-refresh-token`, readable only by you.
+grpy refreshes access tokens automatically. If the refresh token expires or
+you revoke grpy's access at
+<https://myaccount.google.com/permissions>, grpy tells you to re-run
+`grpy auth google`.
 
 ## Development
 
