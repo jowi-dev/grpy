@@ -8,6 +8,7 @@
 
 mod api;
 mod http;
+mod link;
 
 use std::fmt;
 use std::sync::{Arc, Mutex};
@@ -18,6 +19,7 @@ use crate::domain::{DateRange, Event, Location, ProviderId, Venue, VenueId};
 
 use super::EventProvider;
 use http::{Http, Ureq};
+pub use link::{MATCH_RADIUS_KM, link_venue};
 
 /// The provider name used in Ticketmaster venue and event IDs.
 pub const PROVIDER: &str = "ticketmaster";
