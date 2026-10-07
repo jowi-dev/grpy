@@ -7,6 +7,7 @@
 //! [`CALENDAR_EVENTS_SCOPE`] is requested.
 
 mod error;
+mod flow;
 pub mod google;
 mod loopback;
 mod pkce;
@@ -14,6 +15,7 @@ mod session;
 mod store;
 
 pub use error::AuthError;
+pub use flow::sign_in;
 pub use loopback::Loopback;
 pub use pkce::Pkce;
 pub use session::{EXPIRY_MARGIN, GoogleAuth};
