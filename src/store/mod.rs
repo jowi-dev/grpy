@@ -16,12 +16,18 @@ use std::str::FromStr;
 use rusqlite::types::Type;
 use rusqlite::{Connection, Row};
 
+use crate::domain::VenueId;
+
+pub use venues::VenueSource;
+
 /// Why a [`Store`] operation failed.
 #[derive(Debug)]
 pub enum StoreError {
     /// The database was written by a newer grpy whose schema this build
     /// doesn't know.
     NewerSchema { found: u32, supported: u32 },
+    /// The store has never seen this venue.
+    UnknownVenue(VenueId),
     /// The database's directory could not be created.
     Io { path: PathBuf, source: io::Error },
     /// SQLite failed.
@@ -36,6 +42,7 @@ impl fmt::Display for StoreError {
                 "database schema version {found} is newer than this grpy supports \
                  ({supported}); upgrade grpy"
             ),
+            Self::UnknownVenue(id) => write!(f, "unknown venue `{id}`"),
             Self::Io { path, source } => write!(f, "{}: {source}", path.display()),
             Self::Sqlite(err) => err.fmt(f),
         }
@@ -45,7 +52,7 @@ impl fmt::Display for StoreError {
 impl std::error::Error for StoreError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::NewerSchema { .. } => None,
+            Self::NewerSchema { .. } | Self::UnknownVenue(_) => None,
             Self::Io { source, .. } => Some(source),
             Self::Sqlite(err) => Some(err),
         }
@@ -117,6 +124,18 @@ where
     let text: String = row.get(idx)?;
     text.parse()
         .map_err(|err| rusqlite::Error::FromSqlConversionFailure(idx, Type::Text, Box::new(err)))
+}
+
+/// As [`parsed`], for a nullable column.
+fn parsed_opt<T>(row: &Row, idx: usize) -> rusqlite::Result<Option<T>>
+where
+    T: FromStr,
+    T::Err: std::error::Error + Send + Sync + 'static,
+{
+    match row.get_ref(idx)? {
+        rusqlite::types::ValueRef::Null => Ok(None),
+        _ => parsed(row, idx).map(Some),
+    }
 }
 
 #[cfg(test)]
