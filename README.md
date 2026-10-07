@@ -32,10 +32,12 @@ demo venues near your location.
 ## Configuration
 
 grpy reads `$XDG_CONFIG_HOME/grpy/config.toml` (default
-`~/.config/grpy/config.toml`) and keeps mutable state in
-`$XDG_DATA_HOME/grpy/` (default `~/.local/share/grpy/`). On first run it
-writes a commented example config, readable only by you, and exits; set
-your home location there and run it again.
+`~/.config/grpy/config.toml`) and keeps mutable state (followed venues,
+cached shows and which shows are already on your calendar) in an SQLite
+database at `$XDG_DATA_HOME/grpy/grpy.db` (default
+`~/.local/share/grpy/grpy.db`). On first run it writes a commented example
+config, readable only by you, and exits; set your home location there and
+run it again.
 
 | Key | Required | Default | Notes |
 |---|---|---|---|

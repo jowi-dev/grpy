@@ -37,6 +37,11 @@ impl Paths {
             data_dir: base("XDG_DATA_HOME", ".local/share")?.join("grpy"),
         })
     }
+
+    /// The local database ([`Store`](crate::store::Store)) in [`data_dir`](Self::data_dir).
+    pub fn store_file(&self) -> PathBuf {
+        self.data_dir.join("grpy.db")
+    }
 }
 
 #[cfg(test)]
@@ -90,6 +95,14 @@ mod tests {
             PathBuf::from("/home/me/.config/grpy/config.toml")
         );
         assert_eq!(paths.data_dir, PathBuf::from("/home/me/.local/share/grpy"));
+    }
+
+    #[test]
+    fn store_file_is_in_the_data_dir() {
+        let paths =
+            Paths::from_env(env(&[("XDG_DATA_HOME", "/data"), ("HOME", "/home/me")])).unwrap();
+
+        assert_eq!(paths.store_file(), PathBuf::from("/data/grpy/grpy.db"));
     }
 
     #[test]
