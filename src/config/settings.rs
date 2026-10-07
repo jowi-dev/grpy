@@ -9,6 +9,12 @@ use super::Secret;
 /// Environment variable that overrides `providers.ticketmaster_key`.
 pub const TICKETMASTER_KEY_ENV: &str = "GRPY_TICKETMASTER_KEY";
 
+/// Environment variable that overrides `google.client_id`.
+pub const GOOGLE_CLIENT_ID_ENV: &str = "GRPY_GOOGLE_CLIENT_ID";
+
+/// Environment variable that overrides `google.client_secret`.
+pub const GOOGLE_CLIENT_SECRET_ENV: &str = "GRPY_GOOGLE_CLIENT_SECRET";
+
 /// Search radius used when `home.radius_miles` is not set.
 pub const DEFAULT_RADIUS_MILES: f64 = 25.0;
 
@@ -24,6 +30,19 @@ pub struct Config {
     pub home: Home,
     /// Google Calendar ID that events are added to.
     pub calendar_id: String,
+    /// The OAuth client grpy signs in to Google with, if configured.
+    /// `grpy auth google` needs it.
+    pub google: Option<GoogleClient>,
+}
+
+/// An OAuth client of type "Desktop app" from the Google Cloud console.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GoogleClient {
+    /// The client ID, ending in `.apps.googleusercontent.com`.
+    pub client_id: String,
+    /// The client secret. Google doesn't treat a desktop client's secret
+    /// as confidential, but grpy still keeps it out of logs.
+    pub client_secret: Secret,
 }
 
 /// API keys for event providers. All optional: a provider without a key
@@ -113,12 +132,14 @@ impl Config {
     ///
     /// `env` looks up an environment variable; pass
     /// `|name| std::env::var(name).ok()` outside of tests. An empty
-    /// variable counts as unset. Overrides: [`TICKETMASTER_KEY_ENV`].
+    /// variable counts as unset. Overrides: [`TICKETMASTER_KEY_ENV`],
+    /// [`GOOGLE_CLIENT_ID_ENV`] and [`GOOGLE_CLIENT_SECRET_ENV`].
     ///
     /// # Errors
     ///
     /// [`ConfigError::Parse`] for invalid TOML, wrong value types or
-    /// unknown keys; [`ConfigError::MissingKey`] when home is not set.
+    /// unknown keys; [`ConfigError::MissingKey`] when home is not set, or
+    /// only one of the Google client ID and secret is.
     pub fn parse(text: &str, env: impl Fn(&str) -> Option<String>) -> Result<Self, ConfigError> {
         let raw: RawConfig = toml::from_str(text).map_err(|err| ConfigError::Parse {
             line: err
@@ -131,6 +152,14 @@ impl Config {
         let ticketmaster = env(TICKETMASTER_KEY_ENV)
             .filter(non_empty)
             .or(raw.providers.ticketmaster_key.filter(non_empty));
+        let google = google_client(
+            env(GOOGLE_CLIENT_ID_ENV)
+                .filter(non_empty)
+                .or(raw.google.client_id.filter(non_empty)),
+            env(GOOGLE_CLIENT_SECRET_ENV)
+                .filter(non_empty)
+                .or(raw.google.client_secret.filter(non_empty)),
+        )?;
 
         Ok(Self {
             providers: ProviderKeys {
@@ -144,6 +173,7 @@ impl Config {
                 .calendar
                 .calendar_id
                 .unwrap_or_else(|| DEFAULT_CALENDAR_ID.to_owned()),
+            google,
         })
     }
 
@@ -182,6 +212,29 @@ fn home_place(
     }
 }
 
+fn google_client(
+    client_id: Option<String>,
+    client_secret: Option<String>,
+) -> Result<Option<GoogleClient>, ConfigError> {
+    const HELP: &str = "set both `google.client_id` and `google.client_secret` \
+         from your OAuth client (see the README), or neither";
+    match (client_id, client_secret) {
+        (Some(client_id), Some(client_secret)) => Ok(Some(GoogleClient {
+            client_id,
+            client_secret: Secret::new(client_secret),
+        })),
+        (Some(_), None) => Err(ConfigError::MissingKey {
+            key: "google.client_secret",
+            help: HELP,
+        }),
+        (None, Some(_)) => Err(ConfigError::MissingKey {
+            key: "google.client_id",
+            help: HELP,
+        }),
+        (None, None) => Ok(None),
+    }
+}
+
 // On-disk shape of `config.toml`. Deliberately not `Debug`: it holds raw
 // secrets before they are wrapped in `Secret`.
 #[derive(Deserialize, Default)]
@@ -190,6 +243,7 @@ struct RawConfig {
     providers: RawProviders,
     home: RawHome,
     calendar: RawCalendar,
+    google: RawGoogle,
 }
 
 #[derive(Deserialize, Default)]
@@ -211,6 +265,13 @@ struct RawHome {
 #[serde(default, deny_unknown_fields)]
 struct RawCalendar {
     calendar_id: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+struct RawGoogle {
+    client_id: Option<String>,
+    client_secret: Option<String>,
 }
 
 #[cfg(test)]
@@ -240,6 +301,10 @@ mod tests {
 
             [calendar]
             calendar_id = "concerts@group.calendar.google.com"
+
+            [google]
+            client_id = "123-abc.apps.googleusercontent.com"
+            client_secret = "GOCSPX-test"
             "#,
             no_env,
         )
@@ -259,6 +324,10 @@ mod tests {
                     radius_miles: 40.0,
                 },
                 calendar_id: "concerts@group.calendar.google.com".into(),
+                google: Some(GoogleClient {
+                    client_id: "123-abc.apps.googleusercontent.com".into(),
+                    client_secret: Secret::new("GOCSPX-test"),
+                }),
             }
         );
     }
@@ -413,5 +482,85 @@ mod tests {
     #[test]
     fn negative_radius_km_is_zero() {
         assert_eq!(home(-5.0).radius_km(), 0);
+    }
+
+    #[test]
+    fn google_client_is_optional() {
+        assert_eq!(Config::parse(MINIMAL, no_env).unwrap().google, None);
+    }
+
+    #[test]
+    fn google_client_comes_from_env_vars() {
+        let config = Config::parse(MINIMAL, |name| match name {
+            GOOGLE_CLIENT_ID_ENV => Some("env-id".into()),
+            GOOGLE_CLIENT_SECRET_ENV => Some("env-secret".into()),
+            _ => None,
+        })
+        .unwrap();
+
+        assert_eq!(
+            config.google,
+            Some(GoogleClient {
+                client_id: "env-id".into(),
+                client_secret: Secret::new("env-secret"),
+            })
+        );
+    }
+
+    #[test]
+    fn google_env_vars_override_the_file_one_at_a_time() {
+        let config = Config::parse(
+            "[home]\naddress = \"33301\"\n[google]\nclient_id = \"file-id\"\nclient_secret = \"file-secret\"",
+            |name| (name == GOOGLE_CLIENT_SECRET_ENV).then(|| "env-secret".into()),
+        )
+        .unwrap();
+
+        assert_eq!(
+            config.google,
+            Some(GoogleClient {
+                client_id: "file-id".into(),
+                client_secret: Secret::new("env-secret"),
+            })
+        );
+    }
+
+    #[test]
+    fn google_client_id_without_secret_is_a_missing_key() {
+        let err = Config::parse(
+            "[home]\naddress = \"33301\"\n[google]\nclient_id = \"file-id\"",
+            no_env,
+        )
+        .unwrap_err();
+
+        assert!(
+            matches!(
+                err,
+                ConfigError::MissingKey {
+                    key: "google.client_secret",
+                    ..
+                }
+            ),
+            "{err:?}"
+        );
+    }
+
+    #[test]
+    fn google_client_secret_without_id_is_a_missing_key() {
+        let err = Config::parse(
+            "[home]\naddress = \"33301\"\n[google]\nclient_secret = \"file-secret\"",
+            no_env,
+        )
+        .unwrap_err();
+
+        assert!(
+            matches!(
+                err,
+                ConfigError::MissingKey {
+                    key: "google.client_id",
+                    ..
+                }
+            ),
+            "{err:?}"
+        );
     }
 }
