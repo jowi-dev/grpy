@@ -28,6 +28,25 @@ pub(super) fn parse_venue_page(body: &str) -> Result<VenuePage, String> {
     })
 }
 
+/// Parses a `/discovery/v2/events/{id}` response body into the event's
+/// venue.
+pub(super) fn parse_event_venue(body: &str) -> Result<Venue, String> {
+    let raw: RawEvent = serde_json::from_str(body)
+        .map_err(|err| format!("unexpected Ticketmaster event response: {err}"))?;
+    raw.embedded
+        .venues
+        .into_iter()
+        .next()
+        .and_then(RawVenue::into_venue)
+        .ok_or_else(|| "Ticketmaster event has no venue with coordinates".into())
+}
+
+#[derive(Deserialize)]
+struct RawEvent {
+    #[serde(rename = "_embedded", default)]
+    embedded: RawEmbedded,
+}
+
 #[derive(Deserialize)]
 struct RawVenuePage {
     #[serde(rename = "_embedded", default)]
@@ -134,6 +153,22 @@ mod tests {
 
     const PAGE_0: &str = include_str!("../../../tests/fixtures/ticketmaster/venues-page-0.json");
     const EMPTY: &str = include_str!("../../../tests/fixtures/ticketmaster/venues-empty.json");
+
+    const EVENT: &str = include_str!("../../../tests/fixtures/ticketmaster/event.json");
+
+    #[test]
+    fn event_venue_is_the_first_embedded_venue() {
+        let venue = parse_event_venue(EVENT).unwrap();
+
+        assert_eq!(venue.id.to_string(), "ticketmaster:KovZpZHrlTest");
+        assert_eq!(venue.name, "Hard Rock Live");
+        assert_eq!(venue.location.label, "Hollywood, FL");
+    }
+
+    #[test]
+    fn event_without_a_venue_is_an_error() {
+        assert!(parse_event_venue(r#"{"id":"Z7r9jZ1ATest","name":"TBA"}"#).is_err());
+    }
 
     #[test]
     fn venue_page_maps_venues_and_page_count() {

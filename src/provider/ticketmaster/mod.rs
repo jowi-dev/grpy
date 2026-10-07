@@ -59,6 +59,9 @@ pub enum Error {
     Request(String),
     /// The response body was not what the Discovery API sends.
     Response(String),
+    /// An event ID with characters other than ASCII letters, digits, `-`
+    /// and `_`, which would not be a single URL path segment.
+    InvalidEventId,
 }
 
 impl fmt::Display for Error {
@@ -76,6 +79,9 @@ impl fmt::Display for Error {
             Self::Status(status) => write!(f, "Ticketmaster returned HTTP {status}"),
             Self::Request(reason) => write!(f, "Ticketmaster request failed: {reason}"),
             Self::Response(reason) => f.write_str(reason),
+            Self::InvalidEventId => {
+                f.write_str("a Ticketmaster event ID is only letters, digits, `-` and `_`")
+            }
         }
     }
 }
@@ -122,6 +128,34 @@ impl Ticketmaster {
                 limiter: RateLimiter::new(min_interval),
             }),
         }
+    }
+
+    /// The venue a Ticketmaster event is at, looked up by event ID.
+    ///
+    /// Venue pages such as Culture Room's link each show to Ticketmaster;
+    /// the ID from that link resolves straight to the venue's Ticketmaster
+    /// ID, with no name matching.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::InvalidEventId`] if `event_id` is not a bare ID,
+    /// [`Error::Status`] with 404 for an unknown event, and the usual
+    /// request errors.
+    pub async fn venue_for_event(&self, event_id: &str) -> super::Result<Venue> {
+        let bare = !event_id.is_empty()
+            && event_id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
+        if !bare {
+            return Err(Error::InvalidEventId.into());
+        }
+        let client = Arc::clone(&self.client);
+        let path = format!("/discovery/v2/events/{event_id}.json");
+        run_blocking(move || {
+            let body = client.get(&path, &[])?;
+            api::parse_event_venue(&body).map_err(Error::Response)
+        })
+        .await
     }
 }
 
@@ -275,6 +309,44 @@ mod tests {
     const PAGE_0: &str = include_str!("../../../tests/fixtures/ticketmaster/venues-page-0.json");
     const PAGE_1: &str = include_str!("../../../tests/fixtures/ticketmaster/venues-page-1.json");
     const EMPTY: &str = include_str!("../../../tests/fixtures/ticketmaster/venues-empty.json");
+
+    const EVENT: &str = include_str!("../../../tests/fixtures/ticketmaster/event.json");
+
+    #[tokio::test]
+    async fn venue_for_event_looks_up_the_event() {
+        let http = FakeHttp::serving(&[EVENT]);
+
+        let venue = provider(&http)
+            .venue_for_event("Z7r9jZ1ATest")
+            .await
+            .unwrap();
+
+        assert_eq!(venue.id.to_string(), "ticketmaster:KovZpZHrlTest");
+        let (url, _) = &http.requests()[0];
+        assert_eq!(url, "https://tm.test/discovery/v2/events/Z7r9jZ1ATest.json");
+        assert_eq!(http.param("apikey"), [KEY]);
+    }
+
+    #[tokio::test]
+    async fn unknown_event_is_a_404() {
+        let http = FakeHttp::default();
+        http.push(404, None, r#"{"errors":[{"code":"DIS1004"}]}"#);
+
+        let err = provider(&http).venue_for_event("nope").await.unwrap_err();
+
+        assert_eq!(ticketmaster_error(err), Error::Status(404));
+    }
+
+    #[tokio::test]
+    async fn event_id_that_is_not_a_bare_id_is_rejected_without_a_request() {
+        let http = FakeHttp::default();
+
+        for bad in ["", "../venues", "abc?x=1", "a/b"] {
+            let err = provider(&http).venue_for_event(bad).await.unwrap_err();
+            assert_eq!(ticketmaster_error(err), Error::InvalidEventId, "{bad:?}");
+        }
+        assert!(http.requests().is_empty());
+    }
 
     const KEY: &str = "tm-test-key";
 
