@@ -8,6 +8,7 @@ use grpy::cli::{AuthService, Cli, Command};
 use grpy::config::{self, Config, Paths};
 use grpy::location::{LocationQuery, LocationResolver, Nominatim};
 use grpy::provider::FakeProvider;
+use grpy::store::Store;
 use grpy::tui;
 
 /// Simulated provider delay, so the loading state is visible.
@@ -40,6 +41,14 @@ async fn main() -> ExitCode {
     for warning in config.warnings() {
         eprintln!("grpy: warning: {warning}");
     }
+    let store_file = paths.store_file();
+    let _store = match Store::open(&store_file) {
+        Ok(store) => store,
+        Err(err) => {
+            eprintln!("grpy: {}: {err}", store_file.display());
+            return ExitCode::FAILURE;
+        }
+    };
 
     let home = LocationQuery::from(&config.home.place);
 
