@@ -3,6 +3,19 @@
 Find upcoming concerts at venues near you, pick the ones you care about in a
 terminal UI, and push them to Google Calendar with a link to the show.
 
+## Usage
+
+Tell grpy where to look for shows:
+
+```sh
+grpy --near "Pompano Beach, FL"      # city, address or zip code
+grpy --lat 26.2379 --lon -80.1248    # exact coordinates
+```
+
+Without these flags grpy uses the home location from the config file. grpy
+prints the location it is using and where it came from. Place names
+are looked up with [OpenStreetMap Nominatim](https://nominatim.org/).
+
 ## Configuration
 
 grpy reads `$XDG_CONFIG_HOME/grpy/config.toml` (default
