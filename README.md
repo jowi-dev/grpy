@@ -32,10 +32,12 @@ demo venues near your location.
 ## Configuration
 
 grpy reads `$XDG_CONFIG_HOME/grpy/config.toml` (default
-`~/.config/grpy/config.toml`) and keeps mutable state in
-`$XDG_DATA_HOME/grpy/` (default `~/.local/share/grpy/`). On first run it
-writes a commented example config, readable only by you, and exits; set
-your home location there and run it again.
+`~/.config/grpy/config.toml`) and keeps mutable state (followed venues,
+cached shows and which shows are already on your calendar) in an SQLite
+database at `$XDG_DATA_HOME/grpy/grpy.db` (default
+`~/.local/share/grpy/grpy.db`). On first run it writes a commented example
+config, readable only by you, and exits; set your home location there and
+run it again.
 
 | Key | Required | Default | Notes |
 |---|---|---|---|
@@ -45,6 +47,7 @@ your home location there and run it again.
 | `providers.ticketmaster_key` | no | | Without it, Ticketmaster-ticketed venues aren't covered (grpy warns) |
 | `calendar.calendar_id` | no | `primary` | Google Calendar to add events to |
 | `google.client_id`, `google.client_secret` | both or neither | | OAuth client for `grpy auth google` (see below) |
+| `cache.ttl_hours` | no | `12` | How long fetched shows are reused before a venue is checked again |
 
 `GRPY_TICKETMASTER_KEY` overrides `providers.ticketmaster_key`, and
 `GRPY_GOOGLE_CLIENT_ID` / `GRPY_GOOGLE_CLIENT_SECRET` override the Google

@@ -6,4 +6,5 @@ pub mod config;
 pub mod domain;
 pub mod location;
 pub mod provider;
+pub mod store;
 pub mod tui;

@@ -31,3 +31,8 @@
 # override these values.
 # client_id = ""
 # client_secret = ""
+
+[cache]
+# How long fetched shows are reused before a venue is checked again, in
+# hours. Default: 12.
+# ttl_hours = 12
