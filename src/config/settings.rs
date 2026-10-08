@@ -43,6 +43,17 @@ pub struct Home {
     pub radius_miles: f64,
 }
 
+impl Home {
+    /// [`radius_miles`](Self::radius_miles) in whole kilometres, as
+    /// providers take it. Rounds to the nearest kilometre; a negative
+    /// radius becomes 0.
+    pub fn radius_km(&self) -> u32 {
+        const KM_PER_MILE: f64 = 1.609_344;
+        // `as` saturates, so negatives and NaN become 0.
+        (self.radius_miles * KM_PER_MILE).round() as u32
+    }
+}
+
 /// Home as configured, before any geocoding.
 #[derive(Debug, Clone, PartialEq)]
 pub enum HomePlace {
@@ -384,5 +395,23 @@ mod tests {
         let config = Config::parse(MINIMAL, env_with_key).unwrap();
 
         assert!(config.warnings().is_empty());
+    }
+
+    fn home(radius_miles: f64) -> Home {
+        Home {
+            place: HomePlace::Address("Fort Lauderdale, FL".into()),
+            radius_miles,
+        }
+    }
+
+    #[test]
+    fn radius_km_converts_and_rounds_miles() {
+        assert_eq!(home(25.0).radius_km(), 40);
+        assert_eq!(home(0.4).radius_km(), 1);
+    }
+
+    #[test]
+    fn negative_radius_km_is_zero() {
+        assert_eq!(home(-5.0).radius_km(), 0);
     }
 }
