@@ -109,4 +109,15 @@ nix build          # build the package
 nix run            # run it
 ```
 
+Tests never touch the network; provider tests read recorded responses
+from `tests/fixtures/`. A live Ticketmaster smoke test is ignored by
+default. Run it by hand with a real key:
+
+```sh
+GRPY_TICKETMASTER_KEY=... cargo test --test ticketmaster_live -- --ignored --nocapture
+```
+
+It checks that the Ticketmaster venues from the data-source spike can be
+found and prints their Ticketmaster venue IDs.
+
 Planning and work tracking live in GitHub Issues.

@@ -1,0 +1,25 @@
+{
+  "name": "Some Band",
+  "type": "event",
+  "id": "Z7r9jZ1ATest",
+  "locale": "en-us",
+  "dates": {
+    "start": { "localDate": "2026-11-14", "localTime": "19:00:00", "dateTime": "2026-11-15T00:00:00Z" },
+    "timezone": "America/New_York"
+  },
+  "_embedded": {
+    "venues": [
+      {
+        "name": "Hard Rock Live",
+        "type": "venue",
+        "id": "KovZpZHrlTest",
+        "locale": "en-us",
+        "postalCode": "33314",
+        "city": { "name": "Hollywood" },
+        "state": { "name": "Florida", "stateCode": "FL" },
+        "address": { "line1": "1 Seminole Way" },
+        "location": { "longitude": "-80.2105", "latitude": "26.0510" }
+      }
+    ]
+  }
+}
