@@ -23,3 +23,11 @@
 [calendar]
 # Google Calendar to add events to. Default: "primary".
 # calendar_id = "primary"
+
+[google]
+# OAuth client for signing in to Google Calendar with `grpy auth google`.
+# Create a "Desktop app" client in the Google Cloud console; the README
+# walks through it. GRPY_GOOGLE_CLIENT_ID and GRPY_GOOGLE_CLIENT_SECRET
+# override these values.
+# client_id = ""
+# client_secret = ""

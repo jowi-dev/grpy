@@ -1,9 +1,11 @@
-use std::process::ExitCode;
+use std::process::{ExitCode, Stdio};
 use std::time::Duration;
 
 use clap::Parser;
-use grpy::cli::Cli;
-use grpy::config::{self, Paths};
+use grpy::auth::google::HttpTokenEndpoint;
+use grpy::auth::{self, FallbackStore, FileStore, KeyringStore, TOKEN_FILE_NAME};
+use grpy::cli::{AuthService, Cli, Command};
+use grpy::config::{self, Config, Paths};
 use grpy::location::{LocationQuery, LocationResolver, Nominatim};
 use grpy::provider::FakeProvider;
 use grpy::tui;
@@ -27,6 +29,14 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+
+    if let Some(Command::Auth {
+        service: AuthService::Google,
+    }) = cli.command
+    {
+        return auth_google(&config, &paths);
+    }
+
     for warning in config.warnings() {
         eprintln!("grpy: warning: {warning}");
     }
@@ -53,4 +63,51 @@ async fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// `grpy auth google`: signs in through the browser and saves the refresh
+/// token to the OS keyring, or a private file in the data dir without one.
+fn auth_google(config: &Config, paths: &Paths) -> ExitCode {
+    let Some(client) = &config.google else {
+        eprintln!(
+            "grpy: no Google OAuth client configured; set `google.client_id` and \
+             `google.client_secret` in {} (the README explains how to create one)",
+            paths.config_file.display()
+        );
+        return ExitCode::FAILURE;
+    };
+    let store = FallbackStore::new(
+        KeyringStore,
+        FileStore::new(paths.data_dir.join(TOKEN_FILE_NAME)),
+    );
+
+    let signed_in = auth::sign_in(client, &HttpTokenEndpoint::new(), &store, |url| {
+        println!("Sign in to Google in your browser. If it doesn't open, visit:\n\n  {url}\n");
+        open_in_browser(url.as_str());
+        println!("Waiting for Google to redirect back to grpy...");
+    });
+    match signed_in {
+        Ok(location) => {
+            println!("Signed in to Google Calendar. Refresh token saved to {location}.");
+            ExitCode::SUCCESS
+        }
+        Err(err) => {
+            eprintln!("grpy: {err}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// Best effort: the URL is printed too, so failure here is fine.
+fn open_in_browser(url: &str) {
+    let opener = if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let _ = std::process::Command::new(opener)
+        .arg(url)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn();
 }

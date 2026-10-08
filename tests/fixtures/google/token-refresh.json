@@ -1,0 +1,6 @@
+{
+  "access_token": "ya29.fake-refreshed-token",
+  "expires_in": 3599,
+  "scope": "https://www.googleapis.com/auth/calendar.events",
+  "token_type": "Bearer"
+}

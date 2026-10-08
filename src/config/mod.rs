@@ -14,6 +14,7 @@ pub use file::{EXAMPLE_CONFIG, LoadError, load_or_init};
 pub use paths::Paths;
 pub use secret::Secret;
 pub use settings::{
-    Config, ConfigError, DEFAULT_CALENDAR_ID, DEFAULT_RADIUS_MILES, Home, HomePlace, ProviderKeys,
-    TICKETMASTER_KEY_ENV, Warning,
+    Config, ConfigError, DEFAULT_CALENDAR_ID, DEFAULT_RADIUS_MILES, GOOGLE_CLIENT_ID_ENV,
+    GOOGLE_CLIENT_SECRET_ENV, GoogleClient, Home, HomePlace, ProviderKeys, TICKETMASTER_KEY_ENV,
+    Warning,
 };
